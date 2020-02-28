@@ -1,4 +1,4 @@
-package dao
+package service
 
 import (
 	"gopkg.in/mgo.v2"
@@ -13,7 +13,7 @@ var (
 )
 
 func init() {
-	client = utils.Mongo.DB("honor").C("news")
+	client = utils.MongoClient.DB("honor").C("news")
 }
 
 //新增一个对象到mongodb中

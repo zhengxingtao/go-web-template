@@ -52,3 +52,30 @@ func ParamError() string {
 	}
 	return string(result)
 }
+
+//授权错误
+func AuthorizationError() string {
+	response := BaseResponse{
+		StatusCode: 401,
+		StatusMsg:  "授权错误",
+		Data:       nil,
+	}
+	result, err := json.Marshal(response)
+	if err != nil {
+		return ServerError()
+	}
+	return string(result)
+}
+
+func CommonError(code int, msg string) string {
+	response := BaseResponse{
+		StatusCode: code,
+		StatusMsg:  msg,
+		Data:       nil,
+	}
+	result, err := json.Marshal(response)
+	if err != nil {
+		return ServerError()
+	}
+	return string(result)
+}

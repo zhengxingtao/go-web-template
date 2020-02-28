@@ -3,22 +3,25 @@ package main
 import (
 	restful "github.com/emicklei/go-restful"
 	restfulspec "github.com/emicklei/go-restful-openapi"
-	"github.com/go-openapi/spec"
+	"honor/conf"
 	"honor/controller"
 	"honor/dto"
 	"honor/model"
+	"honor/service"
+	"honor/utils"
 	"log"
 	"net/http"
 )
 
 type NewsResource struct {
 }
-
-type HonorResource struct {
+type UserResource struct {
+}
+type AuthResource struct {
 }
 
 //路由
-func (n NewsResource) WebService() *restful.WebService {
+func (n *NewsResource) WebService() *restful.WebService {
 	ws := new(restful.WebService)
 	ws.Path("/news")
 	ws.Consumes(restful.MIME_JSON, restful.MIME_XML)
@@ -44,60 +47,54 @@ func (n NewsResource) WebService() *restful.WebService {
 	return ws
 }
 
-func (h HonorResource) WebService() *restful.WebService {
-	return nil
+func (user *UserResource) WebService() *restful.WebService {
+	ws := new(restful.WebService)
+	ws.Path("/user")
+	ws.Consumes(restful.MIME_JSON, restful.MIME_XML)
+	ws.Produces(restful.MIME_JSON, restful.MIME_XML)
+
+	tags := []string{"user - 用户服务"}
+
+	ws.Route(ws.POST("").To(controller.CreateUser).
+		Doc("新增用户").Metadata(restfulspec.KeyOpenAPITags, tags).
+		Reads(model.User{}))
+
+	ws.Route(ws.GET("/{uid}").Filter(service.AuthJWT).To(controller.QueryUserById).
+		Doc("获取单个user").
+		Param(ws.PathParameter("uid", "用户id").DataType("string")).
+		Metadata(restfulspec.KeyOpenAPITags, tags).
+		Writes(model.User{}))
+	return ws
+}
+
+func (auth *AuthResource) WebService() *restful.WebService {
+	ws := new(restful.WebService)
+	ws.Path("/auth")
+	ws.Consumes(restful.MIME_JSON, restful.MIME_XML)
+	ws.Produces(restful.MIME_JSON, restful.MIME_XML)
+
+	tags := []string{"auth - 授权服务"}
+
+	ws.Route(ws.POST("/login").To(controller.UsePwAuthorization).
+		Doc("系统登录").
+		Metadata(restfulspec.KeyOpenAPITags, tags).Reads(dto.LoginParam{}))
+	return ws
 }
 
 func main() {
 
-	n := NewsResource{}
-	restful.DefaultContainer.Add(n.WebService())
+	news := NewsResource{}
+	user := UserResource{}
+	auth := AuthResource{}
+	restful.DefaultContainer.Add(news.WebService())
+	restful.DefaultContainer.Add(user.WebService())
+	restful.DefaultContainer.Add(auth.WebService())
 	//swagger配置文件
-	config := restfulspec.Config{
-		WebServices:                   restful.RegisteredWebServices(), // you control what services are visible
-		APIPath:                       "/apidocs.json",
-		PostBuildSwaggerObjectHandler: enrichSwaggerObject}
-	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(config))
+	restful.DefaultContainer.Add(restfulspec.NewOpenAPIService(*conf.SwaggerConf()))
+	// 解决跨域问题
+	restful.DefaultContainer.Filter(conf.CorsConf().Filter)
 	//swagger-ui 配置
 	http.Handle("/apidocs/", http.StripPrefix("/apidocs/", http.FileServer(http.Dir("/Users/tony/Documents/go_repository/honor/dist"))))
-	// 解决跨域问题
-	cors := restful.CrossOriginResourceSharing{
-		AllowedHeaders: []string{"Content-Type", "Accept"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
-		CookiesAllowed: false,
-		Container:      restful.DefaultContainer}
-	restful.DefaultContainer.Filter(cors.Filter)
 
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
-
-func enrichSwaggerObject(swo *spec.Swagger) {
-
-	//设置请求头中携带 授权属性
-	swo.SecurityDefinitions = spec.SecurityDefinitions{
-		"internalApiKey": spec.APIKeyAuth("token", "header"),
-	}
-	swo.Security = []map[string][]string{
-		{"internalApiKey": {""}},
-	}
-
-	swo.Info = &spec.Info{
-		InfoProps: spec.InfoProps{
-			Title:       "HonorService",
-			Description: "Honor后台服务API",
-			Contact: &spec.ContactInfo{
-				Name:  "tonyZheng",
-				Email: "1198833831@qq.com",
-				URL:   "https://www.huojiang.org",
-			},
-			License: &spec.License{
-				Name: "MIT",
-				URL:  "https://www.huojiang.org",
-			},
-			Version: "1.0.0",
-		},
-	}
-	swo.Tags = []spec.Tag{spec.Tag{TagProps: spec.TagProps{
-		Name:        "honor",
-		Description: "获奖网-API"}}}
+	log.Fatal(http.ListenAndServe(utils.GetYmlProperties().Server.Port, nil))
 }

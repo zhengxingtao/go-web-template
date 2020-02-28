@@ -1,10 +1,9 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/emicklei/go-restful"
-	"honor/dao"
 	"honor/dto"
+	"honor/service"
 	"honor/utils"
 	"io"
 )
@@ -12,7 +11,7 @@ import (
 func QueryNewsById(req *restful.Request, rep *restful.Response) {
 	setResponseHeader(rep)
 	id := req.PathParameter("id")
-	result := dao.QueryNewsById(id)
+	result := service.QueryNewsById(id)
 	success := utils.Success(&result)
 	if _, err := io.WriteString(rep, success); err != nil {
 		panic(err.Error())
@@ -21,15 +20,13 @@ func QueryNewsById(req *restful.Request, rep *restful.Response) {
 
 func QueryNewsList(req *restful.Request, rep *restful.Response) {
 	setResponseHeader(rep)
-	parameter := req.HeaderParameter("api_key")
-	fmt.Print(parameter)
 	criteria := dto.NewsCriteria{}
 	if err := req.ReadEntity(&criteria); err != nil {
 		paramError := utils.ParamError()
 		_, _ = io.WriteString(rep, paramError)
 		return
 	}
-	list := dao.QueryNewsList(&criteria)
+	list := service.QueryNewsList(&criteria)
 	success := utils.Success(list)
 	if _, err := io.WriteString(rep, success); err != nil {
 		panic(err.Error())

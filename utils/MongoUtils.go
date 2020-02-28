@@ -3,12 +3,12 @@ package utils
 import "gopkg.in/mgo.v2"
 
 var (
-	Mongo *mgo.Session
-	err   error
+	MongoClient *mgo.Session
+	err         error
 )
 
 func init() {
-	Mongo, err = mgo.Dial("127.0.0.1")
+	MongoClient, err = mgo.Dial(GetYmlProperties().Mongodb.Url)
 	if err != nil {
 		panic(err.Error())
 	}

@@ -11,3 +11,9 @@ type News struct {
 	CreateTime string
 	CreateUser string
 }
+
+type Image struct {
+	ImageType  int
+	ImageUrl   string
+	CreateTime string
+}
